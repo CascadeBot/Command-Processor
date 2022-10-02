@@ -1,18 +1,38 @@
 {
-  "name": "customcommandhandler",
+  "name": "custom-command-handler",
   "version": "1.0.0",
   "description": "Runs Cascadebot Custom commands",
-  "main": "entrypoint.ts",
+  "main": "dist/index.ts",
   "scripts": {
-    "test": "tsc && node src/isolate-tests.js --untrusted-code-mitigations"
+    "dev": "nodemon -r tsconfig-paths/register src/index.ts",
+    "build": "npm run build:pre && npm run build:compile",
+    "start": "node dist/index.js",
+
+    "lint": "eslint --ext .ts,.js,.json src/",
+    "lint:fix": "eslint --fix --ext .ts,.js,.json src/",
+    "lint:report": "eslint --ext .ts,.js,.json --output-file eslint_report.json --format json src/",
+
+    "build:pre": "rimraf dist/",
+    "build:compile": "tsc && tsc-alias"
   },
   "author": "cascadeorg",
   "license": "MIT",
   "dependencies": {
     "@cloudamqp/amqp-client": "^2.1.0",
-    "@types/websocket": "^1.0.5",
-    "isolated-vm": "^4.4.1",
-    "typescript": "^4.8.4",
-    "websocket": "^1.0.34"
+    "isolated-vm": "^4.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.20",
+    "@typescript-eslint/eslint-plugin": "^5.38.0",
+    "@typescript-eslint/parser": "^5.38.0",
+    "eslint": "^8.24.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "nodemon": "^2.0.20",
+    "rimraf": "^3.0.2",
+    "ts-node": "^10.9.1",
+    "tsc-alias": "^1.7.0",
+    "tsconfig-paths": "^4.1.0",
+    "typescript": "^4.8.3"
   }
 }
