@@ -1,3 +1,3 @@
-
-
-require("file2");
+log("before")
+await wait(5000)
+log("after")

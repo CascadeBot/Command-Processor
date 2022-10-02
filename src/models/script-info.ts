@@ -1,7 +1,7 @@
-import {Script} from "isolated-vm";
+import {Module} from "isolated-vm";
 
 export interface ScriptInfo {
     code: string,
     filename: string
-    isolateScript?: Script
+    isolateScript?: Module
 }
