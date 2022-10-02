@@ -1,10 +1,10 @@
 import { Callback, Isolate } from 'isolated-vm';
-import { ScriptInfo } from './models/script-info';
+import { ScriptInfo } from '@/models/script-info';
 import fs from 'fs';
+import { join } from 'path';
 
 const vmInstance = new Isolate({
   memoryLimit: 512,
-  inspector: true,
   onCatastrophicError: handleError,
 });
 
@@ -13,11 +13,11 @@ let startTime = 0n;
 async function doTests() {
   const scriptInfoArray: ScriptInfo[] = [
     {
-      code: fs.readFileSync('example/file1.js', 'utf-8'),
+      code: fs.readFileSync(join(__dirname, 'example/file1.js'), 'utf-8'),
       filename: 'file1.js',
     },
     {
-      code: fs.readFileSync('example/file2.js', 'utf-8'),
+      code: fs.readFileSync(join(__dirname, 'example/file1.js'), 'utf-8'),
       filename: 'file2.js',
     },
   ];
@@ -27,7 +27,7 @@ async function doTests() {
       filename: scriptInfo.filename,
     });
   }
-  const context = await vmInstance.createContext({ inspector: true });
+  const context = await vmInstance.createContext();
   const jail = context.global;
   await jail.set('global', jail.derefInto());
 
@@ -35,7 +35,7 @@ async function doTests() {
     'require',
     new Callback(function (fileName: string) {
       console.log('require function called for file ' + fileName);
-      const newContext = vmInstance.createContextSync({ inspector: true });
+      const newContext = vmInstance.createContextSync();
       newContext.global.setSync(
         'log',
         new Callback(function (message: string) {
@@ -43,8 +43,8 @@ async function doTests() {
         }),
       );
       fileName = fileName + '.js';
-      console.log(fileName);
-      const script = scriptInfoArray.find((info) => info.filename == fileName);
+      // console.log(fileName);
+      // const script = scriptInfoArray.find((info) => info.filename == fileName);
       //let result = script!.isolateScript?.run(newContext);
     }),
   );
@@ -103,7 +103,7 @@ setInterval(
 );
 
 function handleError(message: string) {
-  // TODO
+  console.error('catastrophic vm instance error:', message);
 }
 
 doTests().catch((err) => console.error(err));
