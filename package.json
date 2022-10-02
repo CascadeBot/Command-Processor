@@ -1,0 +1,18 @@
+{
+  "name": "customcommandhandler",
+  "version": "1.0.0",
+  "description": "Runs Cascadebot Custom commands",
+  "main": "entrypoint.ts",
+  "scripts": {
+    "test": "tsc && node src/isolate-tests.js --untrusted-code-mitigations"
+  },
+  "author": "cascadeorg",
+  "license": "MIT",
+  "dependencies": {
+    "@cloudamqp/amqp-client": "^2.1.0",
+    "@types/websocket": "^1.0.5",
+    "isolated-vm": "^4.4.1",
+    "typescript": "^4.8.4",
+    "websocket": "^1.0.34"
+  }
+}
