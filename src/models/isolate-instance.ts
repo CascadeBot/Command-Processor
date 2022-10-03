@@ -1,14 +1,13 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
-import { IsolateManager } from '@managers/isolate-manager';
 
 export class IsolateInstance {
   public readonly backendInstance: Isolate;
-  private readonly manager: IsolateManager;
+  private readonly dispose: any;
 
-  constructor(isolate: Isolate, manager: IsolateManager) {
+  constructor(isolate: Isolate, dispose: any) {
     this.backendInstance = isolate;
-    this.manager = manager;
+    this.dispose = dispose;
   }
 
   private scriptInfos: ScriptInfo[] = [];
@@ -41,7 +40,7 @@ export class IsolateInstance {
     await scriptInfo.isolateScript.evaluate({
       copy: true,
     });
-    this.manager.disposeOfInstance(this);
+    this.dispose(this);
   }
 
   private async instantiateModule(module: Module, context: Context) {
