@@ -1,6 +1,5 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
-import { createContext } from 'vm';
 import { IsolateManager } from '@managers/isolate-manager';
 
 export class IsolateInstance {
@@ -69,7 +68,7 @@ export class IsolateInstance {
       'require',
       1,
       async (filename: string) => {
-        const newContext = await createContext();
+        const newContext = await this.createContext();
         filename = filename.endsWith('.js') ? filename : filename + '.js';
         const scriptInfo = this.scriptInfos.find(
           (info) => info.filename == filename,
