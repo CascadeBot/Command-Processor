@@ -1,8 +1,7 @@
-import {Isolate} from "isolated-vm";
-import {IsolateInstance} from "@models/isolate-instance";
+import { Isolate } from 'isolated-vm';
+import { IsolateInstance } from '@models/isolate-instance';
 
 export class IsolateManager {
-
   private readonly cpuLimit: bigint;
   private readonly memoryLimit: number;
   private readonly timeout: number;
@@ -13,7 +12,7 @@ export class IsolateManager {
     this.startKillTask();
   }
 
-  private isolates: IsolateInstance[] = []
+  private isolates: IsolateInstance[] = [];
 
   private startKillTask() {
     setInterval(() => {
@@ -29,7 +28,7 @@ export class IsolateManager {
   public createIsolateInstance(): IsolateInstance {
     const vmInstance = new Isolate({
       onCatastrophicError: this.handleCatastrophicError,
-      memoryLimit: this.memoryLimit
+      memoryLimit: this.memoryLimit,
     });
     const instance = new IsolateInstance(vmInstance, this);
     this.isolates.push(instance);
@@ -45,5 +44,4 @@ export class IsolateManager {
     isolate.backendInstance.dispose();
     delete this.isolates[this.isolates.indexOf(isolate)];
   }
-
 }
