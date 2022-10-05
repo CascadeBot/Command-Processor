@@ -1,45 +1,102 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
+import {
+  registerAsyncButSyncFunction,
+  registerAsyncFunction,
+} from '@utils/registerFunc';
+
+interface ScriptFile {
+  fileName: string;
+  context: Context;
+  module: Module;
+  initiated: boolean;
+}
+
+interface ScriptFileContext {
+  files: Map<string, ScriptFile>;
+}
+
+async function requireInContext(
+  files: ScriptFileContext,
+  path: string,
+): Promise<ScriptFile> {
+  console.log('hello world (requireing)');
+  // TODO better resolving of path
+  const filename = path.endsWith('.js') ? path : path + '.js';
+  const script = files.files.get(filename);
+  if (!script) throw new Error('The specified file was not found!');
+
+  if (!script.initiated) {
+    await script.module.instantiate(script.context, (specifier) => {
+      requireInContext(files, specifier);
+      return script.module;
+    });
+    await script.module.evaluate({
+      copy: true,
+    });
+    script.initiated = true;
+  }
+
+  return script;
+}
+
+async function createGlobalContext(files: ScriptFileContext, ctx: Context) {
+  const jail = ctx.global;
+  await jail.set('global', jail.derefInto());
+
+  registerAsyncFunction(ctx, 'log', 1, async (msg: any) => {
+    console.log(msg);
+  });
+
+  registerAsyncButSyncFunction(ctx, 'require', 1, async (path: any) => {
+    const script = await requireInContext(files, path);
+    return 'hello world'; // TODO get module exports from script context
+  });
+}
 
 export class IsolateInstance {
   public readonly backendInstance: Isolate;
   private readonly dispose: any;
+  private readonly scriptContext: ScriptFileContext = {
+    files: new Map(),
+  };
 
   constructor(isolate: Isolate, dispose: any) {
     this.backendInstance = isolate;
     this.dispose = dispose;
   }
 
-  private scriptInfos: ScriptInfo[] = [];
-
   public startCpuTime: bigint;
   private loaded = false;
   private running = false;
 
   public async loadScripts(scriptInfos: ScriptInfo[]) {
-    for (const scriptInfo of scriptInfos) {
-      scriptInfo.isolateScript = await this.backendInstance.compileModule(
-        scriptInfo.code,
-        {
-          filename: scriptInfo.filename,
-        },
-      );
-      this.scriptInfos.push(scriptInfo);
+    for (const script of scriptInfos) {
+      this.scriptContext.files.set(script.filename, {
+        context: await this.backendInstance.createContext(),
+        module: await this.backendInstance.compileModule(script.code, {
+          filename: script.filename,
+        }),
+        fileName: script.filename,
+        initiated: false,
+      });
+    }
+    for (const script of this.scriptContext.files.values()) {
+      await createGlobalContext(this.scriptContext, script.context);
     }
     this.loaded = true;
   }
 
   public async runScript(mainFile: string) {
     this.running = true;
-    const scriptInfo = this.scriptInfos.find(
-      (info) => info.filename == mainFile,
-    );
+    const scriptInfo = this.scriptContext.files.get(mainFile);
     if (scriptInfo == undefined) {
       throw new Error('The specified file was not found!');
     }
-    const context = await this.createContext();
-    await this.instantiateModule(scriptInfo.isolateScript, context);
-    await scriptInfo.isolateScript.evaluate({
+    const context = await this.backendInstance.createContext();
+    await createGlobalContext(this.scriptContext, context);
+    await this.instantiateModule(scriptInfo.module, context);
+    await scriptInfo.module.evaluate({
       copy: true,
     });
     this.dispose(this);
@@ -47,91 +104,9 @@ export class IsolateInstance {
   }
 
   private async instantiateModule(module: Module, context: Context) {
-    return await module.instantiate(context, (specifier) => {
-      specifier = specifier.endsWith('.js') ? specifier : specifier + '.js';
-      const scriptInfo = this.scriptInfos.find(
-        (info) => info.filename == specifier,
-      );
-      if (scriptInfo == undefined) {
-        throw new Error('The specified file was not found!');
-      }
-      this.instantiateModule(scriptInfo.isolateScript, context);
-      return scriptInfo.isolateScript;
+    return await module.instantiate(context, async (specifier) => {
+      const script = await requireInContext(this.scriptContext, specifier);
+      return script.module;
     });
-  }
-
-  private async createContext() {
-    const context = this.backendInstance.createContextSync();
-    const jail = context.global;
-    await jail.set('global', jail.derefInto());
-
-    await this.registerAsyncButSyncFunction(
-      context,
-      'require',
-      1,
-      async (filename: string) => {
-        const newContext = await this.createContext();
-        filename = filename.endsWith('.js') ? filename : filename + '.js';
-        const scriptInfo = this.scriptInfos.find(
-          (info) => info.filename == filename,
-        );
-        if (scriptInfo == undefined) {
-          throw new Error('The specified file was not found!');
-        }
-        await this.instantiateModule(
-          scriptInfo.isolateScript,
-          <Context>newContext,
-        );
-        const result = await scriptInfo.isolateScript.evaluate({
-          copy: true,
-        });
-
-        console.log(result);
-
-        return result; // TODO cache result
-      },
-    );
-
-    await this.registerAsyncFunction(context, 'log', 1, (message: string) => {
-      console.log(message);
-    });
-
-    return context;
-  }
-
-  private async registerAsyncFunction(
-    context: Context,
-    name: string,
-    argCount: number,
-    callback: any,
-  ) {
-    const argArgument = new Array(argCount).map((_, i) => `arg${i}`);
-    await context.evalClosure(
-      `
-      global.${name} = function ${name}(${argArgument}) {
-        return $0.apply(undefined, [${argArgument}], { arguments: { copy: true } })
-      }    
-    `,
-      [callback],
-      { arguments: { reference: true } },
-    );
-  }
-
-  private async registerAsyncButSyncFunction(
-    context: Context,
-    name: string,
-    argCount: number,
-    callback: any,
-  ) {
-    const argArgument = new Array(argCount).map((_, i) => `arg${i}`);
-    await context.evalClosure(
-      `
-      global.${name} = function ${name}(${argArgument}) {
-        return $0.applySyncPromise(undefined, [${argArgument}], { arguments: { copy: true } })
-      }    
-    `,
-      [callback],
-      { arguments: { reference: true } },
-    );
   }
 }

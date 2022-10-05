@@ -7,11 +7,9 @@
     "dev": "nodemon -r tsconfig-paths/register src/index.ts",
     "build": "npm run build:pre && npm run build:compile",
     "start": "node dist/index.js",
-
     "lint": "eslint --ext .ts,.js,.json src/",
     "lint:fix": "eslint --fix --ext .ts,.js,.json src/",
     "lint:report": "eslint --ext .ts,.js,.json --output-file eslint_report.json --format json src/",
-
     "build:pre": "rimraf dist/",
     "build:compile": "tsc && tsc-alias"
   },

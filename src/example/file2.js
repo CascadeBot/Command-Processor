@@ -1,5 +1,5 @@
-function hello() {
-  return "hi";
-}
+import 'file3.js';
 
-module.exports = hello;
+export function hello() {
+  return 'hi';
+}

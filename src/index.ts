@@ -14,6 +14,10 @@ async function testLoad() {
       filename: 'file2.js',
       code: fs.readFileSync(join(__dirname, 'example/file2.js'), 'utf-8'),
     },
+    {
+      filename: 'file3.js',
+      code: fs.readFileSync(join(__dirname, 'example/file3.js'), 'utf-8'),
+    },
   ]);
 
   await instance.runScript('file1.js');
