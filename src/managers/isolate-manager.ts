@@ -1,7 +1,7 @@
 import { Isolate } from 'isolated-vm';
 import { IsolateInstance } from '@models/isolate-instance';
 
-export let cpuLimit = 1000000n; // TODO arbitrary number, need to do more research
+export let cpuLimit = 10000000n; // TODO arbitrary number, need to do more research
 export let memoryLimit = 512; // TODO not so arbitrary number, but we should still do some research into if this is needed or not, 512 MB is quite a bit
 export let timeout = 1000 * 60 * 10; // 10 mins
 
@@ -20,7 +20,11 @@ const isolates: IsolateInstance[] = [];
 function startKillTask() {
   setInterval(() => {
     for (const isolate of isolates) {
-      const diff = isolate.backendInstance.cpuTime - isolate.startCpuTime;
+      if (isolate.startCpuTime == undefined) {
+        continue;
+      }
+      const diff: bigint =
+        isolate.backendInstance.cpuTime - isolate.startCpuTime;
       if (diff >= cpuLimit) {
         disposeOfInstance(isolate);
       }

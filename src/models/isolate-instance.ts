@@ -26,9 +26,11 @@ export class IsolateInstance {
       );
       this.scriptInfos.push(scriptInfo);
     }
+    this.loaded = true;
   }
 
   public async runScript(mainFile: string) {
+    this.running = true;
     const scriptInfo = this.scriptInfos.find(
       (info) => info.filename == mainFile,
     );
@@ -41,6 +43,7 @@ export class IsolateInstance {
       copy: true,
     });
     this.dispose(this);
+    this.running = false;
   }
 
   private async instantiateModule(module: Module, context: Context) {
@@ -58,7 +61,7 @@ export class IsolateInstance {
   }
 
   private async createContext() {
-    const context = await this.backendInstance.createContext();
+    const context = this.backendInstance.createContextSync();
     const jail = context.global;
     await jail.set('global', jail.derefInto());
 
@@ -83,9 +86,15 @@ export class IsolateInstance {
           copy: true,
         });
 
+        console.log(result);
+
         return result; // TODO cache result
       },
     );
+
+    await this.registerAsyncFunction(context, 'log', 1, (message: string) => {
+      console.log(message);
+    });
 
     return context;
   }

@@ -1,3 +1,3 @@
-log('before');
-await wait(5000);
-log('after');
+let hello = require("file2")
+
+log(hello())

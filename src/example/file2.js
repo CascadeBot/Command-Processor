@@ -1,2 +1,5 @@
-let i = 0;
-while (true) {}
+function hello() {
+  return "hi";
+}
+
+module.exports = hello;
