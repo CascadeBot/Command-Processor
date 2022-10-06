@@ -1,6 +1,7 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
 import { registerAsyncFunction } from '@utils/registerFunc';
+import {timeout} from "@managers/isolate-manager";
 
 interface ScriptFile {
   fileName: string;
@@ -49,13 +50,15 @@ async function createGlobalContext(files: ScriptFileContext, ctx: Context) {
 export class IsolateInstance {
   public readonly backendInstance: Isolate;
   private readonly dispose: any;
+  private readonly timeout: number;
   private readonly scriptContext: ScriptFileContext = {
     files: new Map(),
   };
 
-  constructor(isolate: Isolate, dispose: any) {
+  constructor(isolate: Isolate, dispose: any, timeout: number) {
     this.backendInstance = isolate;
     this.dispose = dispose;
+    this.timeout = timeout;
   }
 
   public startCpuTime: bigint;
@@ -81,6 +84,11 @@ export class IsolateInstance {
 
   public async runScript(mainFile: string) {
     this.running = true;
+    setTimeout(() => {
+      if (this.running) {
+        this.dispose(this);
+      }
+    }, this.timeout);
     const scriptInfo = this.scriptContext.files.get(mainFile);
     if (scriptInfo == undefined) {
       throw new Error('The specified file was not found!');
@@ -92,6 +100,7 @@ export class IsolateInstance {
       copy: true,
     });
     this.dispose(this);
+
     this.running = false;
   }
 

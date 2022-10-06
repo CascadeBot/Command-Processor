@@ -37,7 +37,7 @@ export default function createIsolateInstance(): IsolateInstance {
     onCatastrophicError: handleCatastrophicError,
     memoryLimit: memoryLimit,
   });
-  const instance = new IsolateInstance(vmInstance, disposeOfInstance);
+  const instance = new IsolateInstance(vmInstance, disposeOfInstance, timeout);
   isolates.push(instance);
   return instance;
 }
