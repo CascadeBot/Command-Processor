@@ -1,9 +1,6 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
-import {
-  registerAsyncButSyncFunction,
-  registerAsyncFunction,
-} from '@utils/registerFunc';
+import { registerAsyncFunction } from '@utils/registerFunc';
 
 interface ScriptFile {
   fileName: string;
@@ -44,13 +41,8 @@ async function createGlobalContext(files: ScriptFileContext, ctx: Context) {
   const jail = ctx.global;
   await jail.set('global', jail.derefInto());
 
-  registerAsyncFunction(ctx, 'log', 1, async (msg: any) => {
+  await registerAsyncFunction(ctx, 'log', 1, async (msg: any) => {
     console.log(msg);
-  });
-
-  registerAsyncButSyncFunction(ctx, 'require', 1, async (path: any) => {
-    const script = await requireInContext(files, path);
-    return 'hello world'; // TODO get module exports from script context
   });
 }
 
