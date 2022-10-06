@@ -1,7 +1,6 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
 import { registerAsyncFunction } from '@utils/registerFunc';
-import {timeout} from "@managers/isolate-manager";
 
 interface ScriptFile {
   fileName: string;
