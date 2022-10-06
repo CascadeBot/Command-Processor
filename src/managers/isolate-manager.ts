@@ -20,7 +20,7 @@ const isolates: IsolateInstance[] = [];
 function startKillTask() {
   setInterval(() => {
     for (const isolate of isolates) {
-      if (isolate.startCpuTime == undefined) {
+      if (isolate.running == false) {
         continue;
       }
       const diff: bigint =

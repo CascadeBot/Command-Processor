@@ -60,7 +60,7 @@ export class IsolateInstance {
 
   public startCpuTime: bigint;
   private loaded = false;
-  private running = false;
+  public running = false;
 
   public async loadScripts(scriptInfos: ScriptInfo[]) {
     for (const script of scriptInfos) {
