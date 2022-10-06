@@ -2,6 +2,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # install dependencies
+RUN apk add python3 make gcc g++
 COPY package*.json ./
 RUN npm ci
 

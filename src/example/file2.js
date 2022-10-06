@@ -1,2 +1,5 @@
-let i = 0;
-while (true) {}
+import 'file3.js';
+
+export function hello() {
+  return 'hi';
+}
