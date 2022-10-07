@@ -15,12 +15,18 @@ export function setLimit(
   timeout = newTimeout;
 }
 
-const isolates: IsolateInstance[] = [];
+let isolates: IsolateInstance[] = [];
 
 function startKillTask() {
   setInterval(() => {
     for (const isolate of isolates) {
+      if (isolate == undefined) {
+        continue;
+      }
       if (isolate.running == false) {
+        continue;
+      }
+      if (isolate.startCpuTime == undefined) {
         continue;
       }
       const diff: bigint =
@@ -49,7 +55,7 @@ function handleCatastrophicError(message: string) {
 
 function disposeOfInstance(isolate: IsolateInstance) {
   isolate.backendInstance.dispose();
-  delete isolates[isolates.indexOf(isolate)];
+  isolates = isolates.filter((isolateL) => isolateL === isolate);
 }
 
 startKillTask();
