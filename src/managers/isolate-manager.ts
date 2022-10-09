@@ -57,7 +57,7 @@ export function createIsolateInstance(): IsolateInstance {
 }
 
 function handleCatastrophicError(message: string) {
-  // TODO cleanup?
+  // TODO cleanup
   log.error(`catastrophic error: ${message}`, { evt: 'catastrophic' });
   process.exit(1);
 }

@@ -42,7 +42,7 @@ export async function setupApi() {
 
 /*
  ** main entrypoint for sandboxed methods to be called
- ** all parameters of this method are untrusted
+ ** all data passed into this method is untrusted
  */
 export async function callApiMethod(payload: any): Promise<any> {
   const isValidPayload = actionPayloadSchema.validate(payload);
