@@ -5,24 +5,30 @@
   "main": "dist/index.ts",
   "scripts": {
     "dev": "nodemon -r tsconfig-paths/register src/index.ts",
-    "build": "npm run build:pre && npm run build:compile",
+    "build": "npm run build:pre && npm run build:compile && npm run build:post",
     "start": "node dist/index.js",
     "lint": "eslint --ext .ts,.js,.json src/",
     "lint:fix": "eslint --fix --ext .ts,.js,.json src/",
     "lint:report": "eslint --ext .ts,.js,.json --output-file eslint_report.json --format json src/",
     "build:pre": "rimraf dist/",
-    "build:compile": "tsc && tsc-alias"
+    "build:compile": "tsc && tsc-alias",
+    "build:post": "copyfiles -u 1 src/sandboxed/scripts/*.js src/example/*.js dist/"
   },
   "author": "cascadeorg",
   "license": "MIT",
   "dependencies": {
     "@cloudamqp/amqp-client": "^2.1.0",
-    "isolated-vm": "^4.4.1"
+    "isolated-vm": "^4.4.1",
+    "joi": "^17.6.2",
+    "neat-config": "^1.0.0",
+    "winston": "^3.8.2",
+    "winston-console-format": "^1.0.8"
   },
   "devDependencies": {
     "@types/node": "^18.7.20",
     "@typescript-eslint/eslint-plugin": "^5.38.0",
     "@typescript-eslint/parser": "^5.38.0",
+    "copyfiles": "^2.4.1",
     "eslint": "^8.24.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
