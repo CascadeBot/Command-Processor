@@ -1,6 +1,6 @@
 import { Context, Isolate, Module } from 'isolated-vm';
 import { ScriptInfo } from '@models/script-info';
-import { registerAsyncFunction } from '@utils/registerFunc';
+import { createGlobalContext } from './setup-context';
 
 interface ScriptFile {
   fileName: string;
@@ -17,7 +17,6 @@ async function requireInContext(
   files: ScriptFileContext,
   path: string,
 ): Promise<ScriptFile> {
-  console.log('hello world (requireing)');
   // TODO better resolving of path
   const filename = path.endsWith('.js') ? path : path + '.js';
   const script = files.files.get(filename);
@@ -37,27 +36,29 @@ async function requireInContext(
   return script;
 }
 
-async function createGlobalContext(files: ScriptFileContext, ctx: Context) {
-  const jail = ctx.global;
-  await jail.set('global', jail.derefInto());
-
-  await registerAsyncFunction(ctx, 'log', 1, async (msg: any) => {
-    console.log(msg);
-  });
-}
-
 export class IsolateInstance {
   public readonly backendInstance: Isolate;
-  private readonly dispose: any;
+  private readonly dispose: (instance: IsolateInstance) => void;
+  private readonly instanceId: string;
   private readonly timeout: number;
   private readonly scriptContext: ScriptFileContext = {
     files: new Map(),
   };
 
-  constructor(isolate: Isolate, dispose: any, timeout: number) {
+  constructor(
+    id: string,
+    isolate: Isolate,
+    dispose: (instance: IsolateInstance) => void,
+    timeout: number,
+  ) {
+    this.instanceId = id;
     this.backendInstance = isolate;
     this.dispose = dispose;
     this.timeout = timeout;
+  }
+
+  get id() {
+    return this.instanceId;
   }
 
   public startCpuTime: bigint;
@@ -76,31 +77,35 @@ export class IsolateInstance {
       });
     }
     for (const script of this.scriptContext.files.values()) {
-      await createGlobalContext(this.scriptContext, script.context);
+      await createGlobalContext(script.context);
     }
     this.loaded = true;
   }
 
   public async runScript(mainFile: string) {
     this.running = true;
-    setTimeout(() => {
-      if (this.running) {
-        this.dispose(this);
+    try {
+      setTimeout(() => {
+        if (this.running) {
+          this.dispose(this);
+        }
+      }, this.timeout);
+      const scriptInfo = this.scriptContext.files.get(mainFile);
+      if (scriptInfo == undefined) {
+        throw new Error('The specified file was not found!');
       }
-    }, this.timeout);
-    const scriptInfo = this.scriptContext.files.get(mainFile);
-    if (scriptInfo == undefined) {
-      throw new Error('The specified file was not found!');
+      const context = await this.backendInstance.createContext();
+      await createGlobalContext(context);
+      await this.instantiateModule(scriptInfo.module, context);
+      await scriptInfo.module.evaluate({
+        copy: true,
+      });
+    } catch (err) {
+      console.error('failed to run script:', err);
+    } finally {
+      this.dispose(this);
+      this.running = false;
     }
-    const context = await this.backendInstance.createContext();
-    await createGlobalContext(this.scriptContext, context);
-    await this.instantiateModule(scriptInfo.module, context);
-    await scriptInfo.module.evaluate({
-      copy: true,
-    });
-    this.dispose(this);
-
-    this.running = false;
   }
 
   private async instantiateModule(module: Module, context: Context) {
