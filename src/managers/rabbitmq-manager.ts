@@ -34,7 +34,10 @@ export async function tryConnect() {
   connection = await connect(connectionString);
   channel = await connection.createChannel();
 
-  queue = await channel.assertQueue('');
+  queue = await channel.assertQueue('', {
+    exclusive: true,
+    autoDelete: true,
+  });
 
   channel.consume(queue.queue, consume).catch((e) => {
     log.error(e);
@@ -42,18 +45,22 @@ export async function tryConnect() {
 }
 
 export async function getShardCount() {
-  const res = await sendMessageGetReply('shard-count', {});
-  const code = res.statusCode;
-  const shards = res.data['shard-count'];
+  const res = await sendMessageGetReply<ShardCount>('shard_count', {});
+  const code = res.status_code;
+  const shards = res.data.shard_count;
 
-  log.info(`code: ${code}, chard: ${shards}`);
+  log.info(`code: ${code}, shard: ${shards}`);
 }
 
 function consume(message: ConsumeMessage | null) {
   const reply = waitForReplies.find((consumer) => {
     return consumer.correlationId == message.properties.correlationId;
   });
-  const json = JSON.parse(message.content.toString());
+  const json = JSON.parse(message.content.toString()) as Response<any>;
+  if (json.error) {
+    reply.reject(json);
+    return;
+  }
   reply.resolve(json);
   deleteWait(message.properties.correlationId);
 }
@@ -67,13 +74,36 @@ function deleteWait(id: string): boolean {
   return deleted;
 }
 
-async function sendMessageGetReply(
+interface ResponseErrorSub {
+  error_code: string;
+  message: string;
+}
+
+export type Response<T> = ResponseSuccess<T> | ResponseError;
+
+interface ResponseSuccess<T> {
+  status_code: number;
+  error: undefined;
+  data: T;
+}
+
+interface ResponseError {
+  status_code: number;
+  error: ResponseErrorSub;
+  data: undefined;
+}
+
+interface ShardCount {
+  shard_count: number;
+}
+
+export async function sendMessageGetReply<T>(
   action: string,
   body: Record<string, any>,
   queueName = '',
-): Promise<any> {
+): Promise<Response<T>> {
   const id = randomUUID();
-  const prom = new Promise((resolve, reject) => {
+  const prom = new Promise<Response<T>>((resolve, reject) => {
     waitForReplies.push({
       correlationId: id,
       resolve,

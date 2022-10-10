@@ -17,6 +17,7 @@ interface Schema {
   schema: joi.ObjectSchema;
   run: (data: any) => any;
 }
+
 const schemas: Record<string, Schema> = {};
 
 export async function setupApi() {

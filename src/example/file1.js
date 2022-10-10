@@ -4,5 +4,9 @@ log(hello2());
 
 log('-- starting api tests');
 log(hello());
-log(await ping());
+try {
+  log(await ping());
+} catch (e) {
+  log(e.message);
+}
 log(await ping('pongalong!'));
