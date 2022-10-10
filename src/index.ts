@@ -8,6 +8,7 @@ import {
 import { setupScripts } from '@sandboxed/prepare-scripts';
 import fs from 'fs';
 import { join } from 'path';
+import { getShardCount, tryConnect } from '@managers/rabbitmq-manager';
 
 const log = scopedLogger('command-processor');
 
@@ -38,6 +39,9 @@ async function bootstrap() {
   await setupApi();
   await setupScripts();
   log.info('everything setup, running code');
+
+  await tryConnect();
+  await getShardCount();
 
   // run test
   // TODO temp
