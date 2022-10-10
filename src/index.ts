@@ -1,10 +1,18 @@
-import createIsolateInstance from '@managers/isolate-manager';
+import { setupApi } from '@api/entrypoint';
+import { scopedLogger } from '@logger';
+import {
+  createIsolateInstance,
+  setupManager,
+  stopManager,
+} from '@managers/isolate-manager';
+import { setupScripts } from '@sandboxed/prepare-scripts';
 import fs from 'fs';
 import { join } from 'path';
 
-const instance = createIsolateInstance();
+const log = scopedLogger('command-processor');
 
-async function testLoad() {
+async function test() {
+  const instance = createIsolateInstance();
   await instance.loadScripts([
     {
       filename: 'file1.js',
@@ -23,6 +31,22 @@ async function testLoad() {
   await instance.runScript('file1.js');
 }
 
-testLoad().catch((e) => {
-  console.log(e);
+async function bootstrap() {
+  // setup app
+  log.info('setting up modules');
+  await setupManager();
+  await setupApi();
+  await setupScripts();
+  log.info('everything setup, running code');
+
+  // run test
+  // TODO temp
+  await test();
+
+  // clean exit
+  stopManager();
+}
+
+bootstrap().catch((e) => {
+  console.error('critical error:', e);
 });
