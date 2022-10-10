@@ -14,8 +14,8 @@ let queue;
 
 interface QueueConsumer {
   correlationId: string;
-  resolve: any;
-  reject: any;
+  resolve: (...args: any[]) => void;
+  reject: (...args: any[]) => void;
 }
 
 export async function tryConnect() {
@@ -38,8 +38,10 @@ export async function tryConnect() {
   channel.consume(queue, consume).catch((e) => {
     log.error(e);
   });
+}
 
-  const res = await sendGetReply();
+export async function getShardCount() {
+  const res = await sendMassageGetReply();
   const code = res.statusCode;
   const shards = res.data['shard-count'];
 
@@ -48,13 +50,13 @@ export async function tryConnect() {
 
 function consume(message: ConsumeMessage | null) {
   const reply = waitForReplies.find((consumer) => {
-    consumer.correlationId = message.properties.correlationId;
+    return consumer.correlationId == message.properties.correlationId;
   });
   const json = JSON.parse(message.content.toString());
   reply.resolve(json);
 }
 
-async function sendGetReply(): Promise<any> {
+async function sendMassageGetReply(): Promise<any> {
   const id = randomUUID();
   const prom = new Promise((resolve, reject) => {
     waitForReplies.push({
@@ -63,7 +65,7 @@ async function sendGetReply(): Promise<any> {
       reject,
     });
   });
-  channel.push('', 'meta', Buffer.from(''), {
+  await channel.publish('', 'meta', Buffer.from(''), {
     correlationId: id,
     replyTo: queue.queue,
     headers: {
