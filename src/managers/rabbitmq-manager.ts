@@ -41,7 +41,7 @@ export async function tryConnect() {
 }
 
 export async function getShardCount() {
-  const res = await sendMassageGetReply();
+  const res = await sendMessageGetReply();
   const code = res.statusCode;
   const shards = res.data['shard-count'];
 
@@ -56,7 +56,7 @@ function consume(message: ConsumeMessage | null) {
   reply.resolve(json);
 }
 
-async function sendMassageGetReply(): Promise<any> {
+async function sendMessageGetReply(): Promise<any> {
   const id = randomUUID();
   const prom = new Promise((resolve, reject) => {
     waitForReplies.push({
