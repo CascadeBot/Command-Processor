@@ -1,4 +1,5 @@
 import joi from 'joi';
+import { pathRegex } from '@utils/regex';
 
 interface RabbitMQIndividualConf {
   username: string;
@@ -26,10 +27,7 @@ export const rabbitMqConfSchema = joi
       password: joi.string().required(),
       hostname: joi.string().hostname().required(),
       port: joi.number().default(5672),
-      virtualHost: joi
-        .string()
-        .regex(/(\/.*)*\/?/)
-        .default('/'),
+      virtualHost: joi.string().regex(pathRegex).default('/'),
       type: joi.string().default('individual').valid('individual'),
     }),
     joi.object({

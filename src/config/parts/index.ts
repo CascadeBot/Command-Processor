@@ -9,5 +9,5 @@ export interface Config {
 
 export const configSchema = joi.object<Config>({
   logging: loggingConfSchema.default(),
-  rabbitMq: rabbitMqConfSchema.default(),
+  rabbitMq: rabbitMqConfSchema,
 });

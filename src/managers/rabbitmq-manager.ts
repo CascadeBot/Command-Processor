@@ -2,8 +2,9 @@ import { connect, ConsumeMessage } from 'amqplib';
 import { config } from '@config';
 import { randomUUID } from 'crypto';
 import { scopedLogger } from '@logger';
+import { string } from 'joi';
 
-const log = scopedLogger('manager');
+const log = scopedLogger('rabbitmq-manager');
 
 let connection;
 let channel;
@@ -35,13 +36,13 @@ export async function tryConnect() {
 
   queue = await channel.assertQueue('');
 
-  channel.consume(queue, consume).catch((e) => {
+  channel.consume(queue.queue, consume).catch((e) => {
     log.error(e);
   });
 }
 
 export async function getShardCount() {
-  const res = await sendMessageGetReply();
+  const res = await sendMessageGetReply('shard-count', {});
   const code = res.statusCode;
   const shards = res.data['shard-count'];
 
@@ -54,9 +55,23 @@ function consume(message: ConsumeMessage | null) {
   });
   const json = JSON.parse(message.content.toString());
   reply.resolve(json);
+  deleteWait(message.properties.correlationId);
 }
 
-async function sendMessageGetReply(): Promise<any> {
+function deleteWait(id: string): boolean {
+  let deleted = false;
+  waitForReplies.filter((wait) => {
+    deleted = true;
+    return wait.correlationId != id;
+  });
+  return deleted;
+}
+
+async function sendMessageGetReply(
+  action: string,
+  body: Record<string, any>,
+  queueName = '',
+): Promise<any> {
   const id = randomUUID();
   const prom = new Promise((resolve, reject) => {
     waitForReplies.push({
@@ -65,12 +80,24 @@ async function sendMessageGetReply(): Promise<any> {
       reject,
     });
   });
-  await channel.publish('', 'meta', Buffer.from(''), {
+  await channel.publish(queueName, 'meta', Buffer.from(JSON.stringify(body)), {
     correlationId: id,
     replyTo: queue.queue,
     headers: {
-      action: 'shard-count',
+      action: action,
     },
   });
+
+  setTimeout(() => {
+    const wait = waitForReplies.find((consumer) => {
+      return consumer.correlationId == id;
+    });
+    if (wait == undefined) {
+      return;
+    }
+    wait.reject(new Error('Timeout elapsed'));
+    deleteWait(id);
+  }, 5000);
+
   return await prom;
 }
