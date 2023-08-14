@@ -2,6 +2,7 @@ import joi from 'joi';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { scopedLogger } from '@logger';
+import { glob } from 'glob';
 
 const log = scopedLogger('runner');
 
@@ -21,21 +22,11 @@ interface Schema {
 const schemas: Record<string, Schema> = {};
 
 export async function setupApi() {
-  const files = await fs.readdir(path.join(__dirname, './schemas'), {
-    withFileTypes: true,
-  });
-  const fileNames = files
-    .filter((v) => {
-      // js files are supported in production use, where ts are compiled to js
-      const isCodefile = v.name.endsWith('.js') || v.name.endsWith('.ts');
-      const isNormalFile = v.isFile();
-      return isCodefile && isNormalFile;
-    })
-    .map((v) => v.name);
-
-  const importedData = fileNames.map((name) =>
-    require(path.join(__dirname, './schemas', name)),
-  );
+  const globFiles = await glob([
+    __dirname + '/schemas/**/*.js',
+    __dirname + '/schemas/**/*.ts',
+  ]);
+  const importedData = globFiles.map((name) => require(name));
   importedData.forEach((data: Schema) => {
     schemas[data.action] = data;
   });
@@ -64,7 +55,7 @@ export async function callApiMethod(payload: any): Promise<any> {
     };
 
   const isValidPayloadContent = schema.schema.validate(actionData);
-  if (!schema)
+  if (!isValidPayloadContent)
     return {
       success: false,
       error: 'input',
