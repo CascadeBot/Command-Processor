@@ -9,10 +9,11 @@ interface GetUserById {
 }
 
 export const schema = joi.object<GetUserById>({
-  userId: joi.string().regex(idRegex),
-  guildId: joi.string().regex(idRegex),
+  userId: joi.string().regex(idRegex).required(),
+  guildId: joi.string().regex(idRegex).required(),
 });
 
 export const run = (data: GetUserById) => {
+  // TODO rabbitmq
   return 'NO';
 };
