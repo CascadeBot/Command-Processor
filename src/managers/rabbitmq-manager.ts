@@ -1,17 +1,21 @@
-import { connect, ConsumeMessage } from 'amqplib';
+import { Channel, connect, Connection, ConsumeMessage, Replies } from 'amqplib';
 import { config } from '@config';
 import { randomUUID } from 'crypto';
 import { scopedLogger } from '@logger';
-import { string } from 'joi';
+import AssertQueue = Replies.AssertQueue;
+import { ScriptInfo } from '@models/script-info';
 
 const log = scopedLogger('rabbitmq-manager');
 
-let connection;
-let channel;
+let connection: Connection;
+let channel: Channel;
 
 const waitForReplies: QueueConsumer[] = [];
 
-let queue;
+let replyQueue: AssertQueue;
+let processQueue: AssertQueue;
+
+export const MetaRoutingKey = 'meta';
 
 interface QueueConsumer {
   correlationId: string;
@@ -34,28 +38,40 @@ export async function tryConnect() {
   connection = await connect(connectionString);
   channel = await connection.createChannel();
 
-  queue = await channel.assertQueue('', {
+  replyQueue = await channel.assertQueue('', {
     exclusive: true,
     autoDelete: true,
   });
 
-  channel.consume(queue.queue, consume).catch((e) => {
+  processQueue = await channel.assertQueue('custom_command', {});
+
+  channel.consume(replyQueue.queue, replyConsume).catch((e) => {
+    log.error(e);
+  });
+
+  channel.consume(processQueue.queue, processConsume).catch((e) => {
     log.error(e);
   });
 }
 
 export async function getShardCount() {
-  const res = await sendMessageGetReply<ShardCount>('shard_count', {});
+  const res = await sendMessageGetReply<ShardCount>('shard_count');
   const code = res.status_code;
   const shards = res.data.shard_count;
 
   log.info(`code: ${code}, shard: ${shards}`);
 }
 
-function consume(message: ConsumeMessage | null) {
+function processConsume(message: ConsumeMessage | null) {
+  const json = JSON.parse(message.content.toString()) as CommandRequest;
+  // TODO send to command processor
+}
+
+function replyConsume(message: ConsumeMessage | null) {
   const reply = waitForReplies.find((consumer) => {
     return consumer.correlationId == message.properties.correlationId;
   });
+  channel.ack(message);
   const json = JSON.parse(message.content.toString()) as Response<any>;
   if (json.error) {
     reply.reject(json);
@@ -81,6 +97,38 @@ interface ResponseErrorSub {
 
 export type Response<T> = ResponseSuccess<T> | ResponseError;
 
+type ScriptLang = 'JS' | 'TEXT';
+
+interface CommandRequest {
+  lang: ScriptLang;
+  entrypoint: string;
+  files: ScriptInfo;
+  options: Record<string, CommandOption[]>;
+  member: Member;
+  channel: DiscordChannel;
+  interactionId: string;
+}
+
+interface Member {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  nickname: string | null;
+  discriminator: string | null;
+}
+
+interface DiscordChannel {
+  id: string;
+  name: string;
+  type: string;
+  position: number;
+}
+
+interface CommandOption {
+  type: string;
+  value: number | string;
+}
+
 interface ResponseSuccess<T> {
   status_code: number;
   error: undefined;
@@ -99,8 +147,9 @@ interface ShardCount {
 
 export async function sendMessageGetReply<T>(
   action: string,
-  body: Record<string, any>,
-  queueName = '',
+  body: Record<string, any> = {},
+  exchangeName = 'amq.direct',
+  routingKey = MetaRoutingKey,
 ): Promise<Response<T>> {
   const id = randomUUID();
   const prom = new Promise<Response<T>>((resolve, reject) => {
@@ -110,9 +159,9 @@ export async function sendMessageGetReply<T>(
       reject,
     });
   });
-  await channel.publish(queueName, 'meta', Buffer.from(JSON.stringify(body)), {
+  channel.publish(exchangeName, routingKey, Buffer.from(JSON.stringify(body)), {
     correlationId: id,
-    replyTo: queue.queue,
+    replyTo: replyQueue.queue,
     headers: {
       action: action,
     },
