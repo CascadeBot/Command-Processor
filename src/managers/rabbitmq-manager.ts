@@ -60,6 +60,8 @@ export async function getShardCount() {
   const shards = res.data.shard_count;
 
   log.info(`code: ${code}, shard: ${shards}`);
+
+  return shards; // TODO store shard count
 }
 
 function processConsume(message: ConsumeMessage | null) {

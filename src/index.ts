@@ -35,11 +35,11 @@ async function test() {
   await instance.runScript('file1.js', [
     {
       key: 'interactionId',
-      value: 'test',
+      value: '488394590458478602',
     },
     {
       key: 'guildId',
-      value: 'test2',
+      value: '488394590458478602',
     },
   ]);
 }
@@ -47,13 +47,13 @@ async function test() {
 async function bootstrap() {
   // setup app
   log.info('setting up modules');
-  await setupManager();
+  setupManager();
   await setupApi();
   await setupScripts();
   log.info('everything setup, running code');
 
-  //await tryConnect();
-  //await getShardCount();
+  await tryConnect();
+  await getShardCount();
 
   // run test
   // TODO temp
