@@ -67,12 +67,12 @@ export class IsolateInstance {
 
   public async loadScripts(scriptInfos: ScriptInfo[]) {
     for (const script of scriptInfos) {
-      this.scriptContext.files.set(script.filename, {
+      this.scriptContext.files.set(script.name, {
         context: await this.backendInstance.createContext(),
         module: await this.backendInstance.compileModule(script.code, {
-          filename: script.filename,
+          filename: script.name,
         }),
-        fileName: script.filename,
+        fileName: script.name,
         initiated: false,
       });
     }
@@ -82,7 +82,10 @@ export class IsolateInstance {
     this.loaded = true;
   }
 
-  public async runScript(mainFile: string) {
+  public async runScript(
+    mainFile: string,
+    globals: { key: string; value: any }[],
+  ) {
     this.running = true;
     try {
       setTimeout(() => {
@@ -96,6 +99,12 @@ export class IsolateInstance {
       }
       const context = await this.backendInstance.createContext();
       await createGlobalContext(context);
+      for (const id of globals.keys()) {
+        const key = globals[id].key;
+        const value = JSON.stringify(globals[id].value);
+        await context.evalClosure('global.' + key + ' = ' + value);
+        //await context.global.set(key, globals[key]);
+      }
       await this.instantiateModule(scriptInfo.module, context);
       await scriptInfo.module.evaluate({
         copy: true,

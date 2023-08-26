@@ -16,20 +16,32 @@ async function test() {
   const instance = createIsolateInstance();
   await instance.loadScripts([
     {
-      filename: 'file1.js',
+      id: '',
+      name: 'file1.js',
       code: fs.readFileSync(join(__dirname, 'example/file1.js'), 'utf-8'),
     },
     {
-      filename: 'file2.js',
+      id: '',
+      name: 'file2.js',
       code: fs.readFileSync(join(__dirname, 'example/file2.js'), 'utf-8'),
     },
     {
-      filename: 'file3.js',
+      id: '',
+      name: 'file3.js',
       code: fs.readFileSync(join(__dirname, 'example/file3.js'), 'utf-8'),
     },
   ]);
 
-  await instance.runScript('file1.js');
+  await instance.runScript('file1.js', [
+    {
+      key: 'interactionId',
+      value: 'test',
+    },
+    {
+      key: 'guildId',
+      value: 'test2',
+    },
+  ]);
 }
 
 async function bootstrap() {
@@ -40,8 +52,8 @@ async function bootstrap() {
   await setupScripts();
   log.info('everything setup, running code');
 
-  await tryConnect();
-  await getShardCount();
+  //await tryConnect();
+  //await getShardCount();
 
   // run test
   // TODO temp
