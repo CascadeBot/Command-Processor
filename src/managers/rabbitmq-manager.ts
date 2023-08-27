@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { scopedLogger } from '@logger';
 import AssertQueue = Replies.AssertQueue;
 import { ScriptInfo } from '@models/script-info';
+import { createIsolateInstance } from '@managers/isolate-manager';
 
 const log = scopedLogger('rabbitmq-manager');
 
@@ -64,9 +65,31 @@ export async function getShardCount() {
   return shards; // TODO store shard count
 }
 
-function processConsume(message: ConsumeMessage | null) {
-  const json = JSON.parse(message.content.toString()) as CommandRequest;
-  // TODO send to command processor
+async function processConsume(message: ConsumeMessage | null) {
+  const req = JSON.parse(message.content.toString()) as CommandRequest;
+  // TODO switch between different command types
+  // TODO send to command processor instead of doing it here
+  const instance = createIsolateInstance();
+  await instance.loadScripts(req.files);
+  channel.ack(message);
+  await instance.runScript(
+    req.files.find((file) => file.id == req.entrypoint).name,
+    [
+      {
+        key: 'interactionId',
+        value: req.interaction_id,
+      },
+      {
+        key: 'guildId',
+        value: req.guild_id,
+      },
+      {
+        key: 'user',
+        value: req.member,
+        type: 'User',
+      },
+    ],
+  );
 }
 
 function replyConsume(message: ConsumeMessage | null) {
@@ -104,11 +127,12 @@ type ScriptLang = 'JS' | 'TEXT';
 interface CommandRequest {
   lang: ScriptLang;
   entrypoint: string;
-  files: ScriptInfo;
+  files: ScriptInfo[];
   options: Record<string, CommandOption[]>;
   member: Member;
   channel: DiscordChannel;
-  interactionId: string;
+  guild_id: string;
+  interaction_id: string;
 }
 
 interface Member {
