@@ -73,7 +73,7 @@ function disposeOfInstance(id: string) {
   // we still need to be able to dispose of it if it does happen
   const foundInstances = [];
   isolates = isolates.filter((ins) => {
-    if (ins.id !== id) {
+    if (ins.id !== id && !ins.backendInstance.isDisposed) {
       foundInstances.push(ins);
       return true;
     }

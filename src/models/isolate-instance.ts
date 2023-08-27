@@ -84,7 +84,7 @@ export class IsolateInstance {
 
   public async runScript(
     mainFile: string,
-    globals: { key: string; value: any }[],
+    globals: { key: string; value: any; type?: string }[],
   ) {
     this.running = true;
     try {
@@ -102,7 +102,14 @@ export class IsolateInstance {
       for (const id of globals.keys()) {
         const key = globals[id].key;
         const value = JSON.stringify(globals[id].value);
-        await context.evalClosure('global.' + key + ' = ' + value);
+        const type = globals[id].type;
+        if (type) {
+          await context.evalClosure(
+            'global.' + key + ' = new ' + type + '(' + value + ');', // const key = new type(value);
+          );
+        } else {
+          await context.evalClosure('global.' + key + ' = ' + value + ';');
+        }
         //await context.global.set(key, globals[key]);
       }
       await this.instantiateModule(scriptInfo.module, context);

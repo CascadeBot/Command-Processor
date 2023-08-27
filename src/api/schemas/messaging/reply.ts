@@ -13,7 +13,7 @@ interface Reply {
 export const schema = joi.object<Reply>({
   message: joi.string().required(),
   guildId: joi.string().regex(idRegex).required(),
-  interactionId: joi.string().required(), // TODO do we use the interaction id or something else (message id)?
+  interactionId: joi.string().required(),
 });
 
 export const run = async (data: Reply) => {
@@ -23,13 +23,12 @@ export const run = async (data: Reply) => {
     'channel:interaction:reply:simple',
     {
       guild_id: data.guildId,
-      interactionId: data.interactionId,
+      interaction_id: data.interactionId,
       message: data.message,
     },
     'amq.direct',
     'shard.' + shard,
   );
-  console.log(data);
   // TODO rabbitmq
   return '';
 };

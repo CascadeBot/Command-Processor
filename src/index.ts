@@ -57,7 +57,7 @@ async function bootstrap() {
 
   // run test
   // TODO temp
-  await test();
+  //await test();
 
   // clean exit
   stopManager();
