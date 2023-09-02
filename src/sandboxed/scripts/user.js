@@ -14,6 +14,10 @@ class User {
     this.discriminator = data.discriminator;
   }
 
+  getAsMention() {
+    return '<@' + this.#backingId + '>'
+  }
+
 }
 
 async function getUserByID(id) {

@@ -10,11 +10,13 @@ interface Reply {
   interactionId: string;
 }
 
-export const schema = joi.object<Reply>({
-  message: joi.string().required(),
-  guildId: joi.string().regex(idRegex).required(),
-  interactionId: joi.string().required(),
-});
+export const schema = joi
+  .object<Reply>({
+    message: joi.string().required(),
+    guildId: joi.string().regex(idRegex).required(),
+    interactionId: joi.string().required(),
+  })
+  .required();
 
 export const run = async (data: Reply) => {
   const count = await getShardCount();
