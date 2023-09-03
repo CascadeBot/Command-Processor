@@ -12,7 +12,7 @@ import { getShardCount, tryConnect } from '@managers/rabbitmq-manager';
 
 const log = scopedLogger('command-processor');
 
-async function test() {
+async function _test() {
   const instance = createIsolateInstance();
   await instance.loadScripts([
     {

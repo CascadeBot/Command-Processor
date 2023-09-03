@@ -15,7 +15,7 @@ export const schema = joi
   })
   .required();
 
-export const run = (data: GetUserById) => {
+export const run = (_data: GetUserById) => {
   // TODO rabbitmq
   return 'NO';
 };

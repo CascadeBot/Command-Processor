@@ -1,6 +1,4 @@
 import joi from 'joi';
-import { promises as fs } from 'fs';
-import path from 'path';
 import { scopedLogger } from '@logger';
 import { glob } from 'glob';
 import { config } from '@config';
