@@ -1,21 +1,16 @@
-import joi from 'joi';
+import { z } from 'zod';
 import { idRegex } from '@utils/regex';
 
 export const action = 'getUserById';
 
-interface GetUserById {
-  userId: string;
-  guildId: string;
-}
-
-export const schema = joi
-  .object<GetUserById>({
-    userId: joi.string().regex(idRegex).required(),
-    guildId: joi.string().regex(idRegex).required(),
+export const schema = z
+  .object({
+    userId: z.string().regex(idRegex),
+    guildId: z.string().regex(idRegex),
   })
   .required();
 
-export const run = (data: GetUserById) => {
+export const run = (_data: z.infer<typeof schema>) => {
   // TODO rabbitmq
   return 'NO';
 };

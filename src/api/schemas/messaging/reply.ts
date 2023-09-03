@@ -1,22 +1,16 @@
-import joi from 'joi';
+import { z } from 'zod';
 import { idRegex } from '@utils/regex';
 import { getShardCount, sendMessageGetReply } from '@managers/rabbitmq-manager';
 
 export const action = 'reply';
 
-interface Reply {
-  message: string;
-  guildId: string;
-  interactionId: string;
-}
+export const schema = z.object({
+  message: z.string(),
+  guildId: z.string().regex(idRegex),
+  interactionId: z.string(),
+});
 
-export const schema = joi
-  .object<Reply>({
-    message: joi.string().required(),
-    guildId: joi.string().regex(idRegex).required(),
-    interactionId: joi.string().required(),
-  })
-  .required();
+type Reply = z.infer<typeof schema>;
 
 export const run = async (data: Reply) => {
   const count = await getShardCount();

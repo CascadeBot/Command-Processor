@@ -4,5 +4,5 @@ this directory contains all schemas for untrusted input, make sure its validated
 
 all files in this directory must follow this import structure:
  1. `export const action: string` - action name to check
- 2. `export const schema: joi.ObjectSchema<Input>` - schema to check the action against
- 3. `export const run: (data: Input) => any)` - what it runs when the action is executed
+ 2. `export const schema: z.object({})` - schema to check the action against
+ 3. `export const run: (data: z.infer<typeof schema>) => any)` - what it runs when the action is executed

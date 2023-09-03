@@ -1,22 +1,21 @@
-import joi from 'joi';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { z, ZodAny } from 'zod';
 import { scopedLogger } from '@logger';
 import { glob } from 'glob';
 import { config } from '@config';
 
 const log = scopedLogger('runner');
 
-const actionPayloadSchema = joi
+const actionPayloadSchema = z
   .object({
-    action: joi.string().required(),
-    data: joi.object(),
+    action: z.string(),
+    // partial check, first check if action payload structure is correct, specific checks later
+    data: z.any(),
   })
   .strict();
 
 interface Schema {
   action: string;
-  schema: joi.ObjectSchema;
+  schema: ZodAny;
   run: (data: any) => any;
 }
 
@@ -38,8 +37,8 @@ export async function setupApi() {
  ** all data passed into this method is untrusted
  */
 export async function callApiMethod(payload: any): Promise<any> {
-  const isValidPayload = actionPayloadSchema.validate(payload);
-  if (isValidPayload.error)
+  const isValidPayload = actionPayloadSchema.safeParse(payload);
+  if (isValidPayload.success === false)
     return {
       success: false,
       error: 'input',
@@ -55,8 +54,8 @@ export async function callApiMethod(payload: any): Promise<any> {
       error: 'action',
     };
 
-  const isValidPayloadContent = schema.schema.validate(actionData);
-  if (isValidPayloadContent.error) {
+  const isValidPayloadContent = schema.schema.safeParse(actionData);
+  if (isValidPayloadContent.success === false) {
     if (config.logging.allowScripts)
       log.warn('Failed validation', isValidPayloadContent.error);
     return {
@@ -68,7 +67,7 @@ export async function callApiMethod(payload: any): Promise<any> {
 
   try {
     // this is awaited regardless of promise or not
-    const data = await schema.run(isValidPayloadContent.value);
+    const data = await schema.run(isValidPayloadContent.data);
     return {
       success: true,
       data,
