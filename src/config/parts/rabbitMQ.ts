@@ -1,40 +1,18 @@
-import joi from 'joi';
+import { z } from 'zod';
 import { pathRegex } from '@utils/regex';
 
-interface RabbitMQIndividualConf {
-  username: string;
-  password: string;
-  hostname: string;
-  port: number; // = 5672
-  virtualHost: string; // = "/"
-  type: 'individual';
-}
-
-interface RabbitMQConnectionStringConfig {
-  connectionString: string;
-  type: 'connectionString';
-}
-
-export type RabbitMQConf =
-  | RabbitMQIndividualConf
-  | RabbitMQConnectionStringConfig;
-
-export const rabbitMqConfSchema = joi
-  .alternatives()
-  .try(
-    joi.object({
-      username: joi.string().required(),
-      password: joi.string().required(),
-      hostname: joi.string().hostname().required(),
-      port: joi.number().default(5672),
-      virtualHost: joi.string().regex(pathRegex).default('/'),
-      type: joi.string().default('individual').valid('individual'),
-    }),
-    joi.object({
-      connectionString: joi.string().uri({
-        scheme: 'amqp',
-      }),
-      type: joi.string().default('connectionString').valid('connectionString'),
-    }),
-  )
-  .match('one');
+// TODO optional types?
+export const rabbitMqConfSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('connectionString'),
+    connectionString: z.string().url(), // TODO check scheme
+  }),
+  z.object({
+    type: z.literal('individual'),
+    username: z.string(),
+    password: z.string(),
+    hostname: z.string(), // TODO hostname
+    port: z.coerce.number().default(5672),
+    virtualHost: z.string().regex(pathRegex).default('/'),
+  }),
+]);
