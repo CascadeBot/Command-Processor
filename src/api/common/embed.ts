@@ -1,46 +1,81 @@
-import joi from 'joi';
+import { RequiredKeysOf } from 'type-fest';
+import { z } from 'zod';
 
-export enum MessageType {
-  INFO,
-  SUCCESS,
-  DANGER,
-  WARNING,
-  NEUTRAL,
-}
+export const messageType = {
+  INFO: 'INFO',
+  SUCCESS: 'SUCCESS',
+  DANGER: 'DANGER',
+  WARNING: 'WARNING',
+  NEUTRAL: 'NEUTRAL',
+} as const;
 
-export interface Embed {
-  title?: EmbedTitle;
-  content?: string;
-  fields?: EmbedField[];
-  author?: EmbedAuthor;
-  footer?: EmbedFooter;
-  thumbnail?: string;
-  image?: string;
-  color?: number | MessageType;
-}
+export type MessageType = RequiredKeysOf<typeof messageType>;
 
-export interface EmbedField {
-  title: string;
-  inline: boolean;
-  content: string;
-}
+const colorSchema = z.number().or(z.nativeEnum(messageType));
 
-export interface EmbedAuthor {
-  author: string;
-  url?: string;
-  image?: string;
-}
+const embedFieldSchema = z.object({
+  title: z.string().max(256),
+  content: z.string().max(1024),
+  inline: z.boolean(),
+});
 
-export interface EmbedTitle {
-  title: string;
-  url?: string;
-}
+const embedAuthorschema = z.object({
+  author: z.string().max(256),
+  url: z.string().url().optional(),
+  image: z.string().url().optional(),
+});
 
-export interface EmbedFooter {
-  footer: string;
-  iconUrl?: string;
-  timestamp?: Date;
-}
+const embedTitleSchema = z.object({
+  title: z.string().max(256),
+  url: z.string().url().optional(),
+});
+
+const embedFooterSchema = z.object({
+  footer: z.string().max(2048),
+  iconUrl: z.string().url().optional(),
+  timestamp: z.date().optional(),
+});
+
+export const EmbedSchema = z
+  .object({
+    title: embedTitleSchema,
+    content: z.string().max(4096),
+    fields: z.array(embedFieldSchema),
+    author: embedAuthorschema,
+    footer: embedFooterSchema,
+    thumbnail: z.string().url(),
+    image: z.string().url(),
+    color: colorSchema,
+  })
+  .partial()
+  .refine(
+    (value) => !value.content && !value.fields,
+    'Either content or fields are required',
+  )
+  .refine((value) => {
+    let currentLen = 0;
+    if (value.fields) {
+      for (const field of value.fields) {
+        currentLen += field.title.length + field.content.length;
+      }
+    }
+    if (value.title) {
+      currentLen += value.title.title.length;
+    }
+    if (value.content) {
+      currentLen += value.content.length;
+    }
+    if (value.author) {
+      currentLen += value.author.author.length;
+    }
+    if (value.footer) {
+      currentLen += value.footer.footer.length;
+    }
+
+    return currentLen <= 6000;
+  }, 'All embed content together exceed max length of 6000');
+
+type Embed = z.infer<typeof EmbedSchema>;
 
 export function convertToBotEmbed(embed: Embed) {
   const botEmbed = {
@@ -95,67 +130,3 @@ export function convertToBotEmbed(embed: Embed) {
   }
   return botEmbed;
 }
-
-export const EmbedSchema = joi
-  .object<Embed>({
-    title: joi.object<EmbedTitle>({
-      title: joi.string().max(256).required(),
-      url: joi.string().uri(),
-    }),
-    content: joi.string().max(4096),
-    fields: joi.array().items(
-      joi.object<EmbedField>({
-        title: joi.string().required().max(256),
-        content: joi.string().required().max(1024),
-        inline: joi.boolean().required(),
-      }),
-    ),
-    author: joi.object<EmbedAuthor>({
-      author: joi.string().max(256).required(),
-      url: joi.string().uri(),
-      image: joi.string().uri(),
-    }),
-    footer: joi.object<EmbedFooter>({
-      footer: joi.string().max(2048).required(),
-      iconUrl: joi.string().uri(),
-      timestamp: joi.date(),
-    }),
-    thumbnail: joi.string().uri(),
-    image: joi.string().uri(),
-    color: joi.alternatives(
-      // allow color to wither be number representation, or message type
-      joi.number(),
-      joi.string().valid('INFO', 'SUCCESS', 'DANGER', 'WARNING', 'NEUTRAL'),
-    ),
-  })
-  .custom((value: Embed, helpers) => {
-    if (!value.content && !value.fields) {
-      return helpers.message({
-        error: 'Either content or fields are required',
-      });
-    }
-    let currentLen = 0;
-    if (value.fields) {
-      for (const field of value.fields) {
-        currentLen += field.title.length + field.content.length;
-      }
-    }
-    if (value.title) {
-      currentLen += value.title.title.length;
-    }
-    if (value.content) {
-      currentLen += value.content.length;
-    }
-    if (value.author) {
-      currentLen += value.author.author.length;
-    }
-    if (value.footer) {
-      currentLen += value.footer.footer.length;
-    }
-    if (currentLen > 6000) {
-      return helpers.message({
-        error: 'All embed content together exceed max length of 6000',
-      });
-    }
-    return value;
-  });
