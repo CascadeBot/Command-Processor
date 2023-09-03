@@ -1,6 +1,6 @@
 import joi from 'joi';
 
-enum MessageType {
+export enum MessageType {
   INFO,
   SUCCESS,
   DANGER,
@@ -38,8 +38,62 @@ export interface EmbedTitle {
 
 export interface EmbedFooter {
   footer: string;
-  url?: string;
+  iconUrl?: string;
   timestamp?: Date;
+}
+
+export function convertToBotEmbed(embed: Embed) {
+  const botEmbed = {
+    description: embed.content,
+    image: embed.image,
+    thumbnail: embed.thumbnail,
+    title: undefined,
+    url: undefined,
+    timestamp: undefined,
+    footer: undefined,
+    fields: undefined,
+    author: undefined,
+    color: undefined,
+    message_type: undefined,
+  };
+  if (embed.title) {
+    botEmbed.title = embed.title.title;
+    botEmbed.url = embed.title.url;
+  }
+  if (embed.footer) {
+    if (embed.footer.timestamp) {
+      botEmbed.timestamp = embed.footer.timestamp;
+    }
+    if (embed.footer.footer) {
+      botEmbed.footer = {};
+      botEmbed.footer.text = embed.footer.footer;
+      botEmbed.footer.icon_url = embed.footer.iconUrl;
+    }
+  }
+  if (embed.fields) {
+    botEmbed.fields = [];
+    for (const field of embed.fields) {
+      botEmbed.fields.push({
+        name: field.title,
+        value: field.content,
+        inline: field.inline,
+      });
+    }
+  }
+  if (embed.author) {
+    botEmbed.author = {};
+    botEmbed.author.name = embed.author.author;
+    botEmbed.author.url = embed.author.url;
+    botEmbed.author.icon_url = embed.author.image;
+  }
+  if (embed.color) {
+    if (typeof embed.color == 'number') {
+      botEmbed.color = embed.color;
+    } else {
+      botEmbed.message_type = botEmbed.color;
+    }
+  }
+  return botEmbed;
 }
 
 export const EmbedSchema = joi
@@ -63,7 +117,7 @@ export const EmbedSchema = joi
     }),
     footer: joi.object<EmbedFooter>({
       footer: joi.string().max(2048).required(),
-      url: joi.string().uri(),
+      iconUrl: joi.string().uri(),
       timestamp: joi.date(),
     }),
     thumbnail: joi.string().uri(),
@@ -103,4 +157,5 @@ export const EmbedSchema = joi
         error: 'All embed content together exceed max length of 6000',
       });
     }
+    return value;
   });

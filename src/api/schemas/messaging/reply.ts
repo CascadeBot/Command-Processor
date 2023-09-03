@@ -31,6 +31,6 @@ export const run = async (data: Reply) => {
     'amq.direct',
     'shard.' + shard,
   );
-  // TODO rabbitmq
+  // TODO return message
   return '';
 };

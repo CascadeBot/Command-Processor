@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { scopedLogger } from '@logger';
 import { glob } from 'glob';
+import { config } from '@config';
 
 const log = scopedLogger('runner');
 
@@ -55,12 +56,15 @@ export async function callApiMethod(payload: any): Promise<any> {
     };
 
   const isValidPayloadContent = schema.schema.validate(actionData);
-  if (!isValidPayloadContent)
+  if (isValidPayloadContent.error) {
+    if (config.logging.allowScripts)
+      log.warn('Failed validation', isValidPayloadContent.error);
     return {
       success: false,
       error: 'input',
       data: isValidPayloadContent.error,
     };
+  }
 
   try {
     // this is awaited regardless of promise or not
@@ -70,7 +74,9 @@ export async function callApiMethod(payload: any): Promise<any> {
       data,
     };
   } catch (err) {
-    log.error('Failed to run api method: ' + schema.action, err);
+    const errorStr: Error | string =
+      err instanceof Error ? err : JSON.stringify(err, null, 2);
+    log.error('Failed to run api method: ' + schema.action, errorStr);
     return {
       success: false,
       error: 'exec',

@@ -11,14 +11,14 @@ const messageType = {
 }
 
 class Embed {
-  title = null; // EmbedTitle | null
-  content = null;
-  fields  = null; // EmbedField[] | null
-  author = null; // EmbedAuthor | null
-  footer = null; // EmbedFooter | null
-  thumbnail = null;
-  image = null;
-  color = null; // Color | null
+  title = undefined; // EmbedTitle | undefined
+  content = undefined;
+  fields  = undefined; // EmbedField[] | undefined
+  author = undefined; // EmbedAuthor | undefined
+  footer = undefined; // EmbedFooter | undefined
+  thumbnail = undefined;
+  image = undefined;
+  color = undefined; // Color | messageType | undefined
 
   constructor(data) {
     if (!data) {
@@ -37,7 +37,7 @@ class Embed {
       }
     }
     if (data.author) {
-      this.author = new EmbedAuthor();
+      this.author = new EmbedAuthor(data.author);
     }
     // Once again trying to be nice to the user, as timestamp is displayed in the footer I'm adding it to the footer obj
     if (data.footer || data.timestamp) {
@@ -47,6 +47,9 @@ class Embed {
     this.image = data.image;
     if (data.color) {
       this.color = new Color(data.color);
+    }
+    if (data.message_type) {
+      this.color = data.message_type;
     }
   }
 
@@ -99,23 +102,23 @@ class EmbedField {
 }
 
 class EmbedAuthor {
-  author = ''
-  url = null
-  image = null
+  author = '';
+  url = undefined;
+  image = undefined;
 
   constructor(data) {
     if (!data) {
       return;
     }
     this.author = data.name;
-    this.url = data.iconUrl;
+    this.url = data.icon_url;
     this.image = data.image;
   }
 }
 
 class EmbedTitle {
   title = '';
-  url = null;
+  url = undefined;
 
   constructor(title, url) {
     this.title = title;
@@ -125,13 +128,13 @@ class EmbedTitle {
 
 class EmbedFooter {
   footer = '';
-  url = null;
-  timestamp = null; // Date | null
+  iconUrl = undefined;
+  timestamp = undefined; // Date | undefined
 
   constructor(data, timestamp) {
     if (data) {
       this.footer = data.text;
-      this.url = data.url;
+      this.iconUrl = data.icon_url;
     }
     if (timestamp) {
       this.timestamp = timestamp;
