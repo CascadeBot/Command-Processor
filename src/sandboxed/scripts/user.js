@@ -1,14 +1,16 @@
 class User {
   #backingId = "0";
 
-  name = "";
+  username = "";
   nick = "";
+  displayName = "";
   avatar = "";
   discriminator = "";
 
   constructor(data) {
     this.#backingId = data.id;
-    this.name = data.name;
+    this.username = data.username;
+    this.displayName = data.display_name
     this.nick = data.nickname;
     this.avatar = data.avatarUrl;
     this.discriminator = data.discriminator;

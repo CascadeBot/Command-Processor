@@ -1,15 +1,22 @@
 import joi from 'joi';
 
+enum MessageType {
+  INFO,
+  SUCCESS,
+  DANGER,
+  WARNING,
+  NEUTRAL,
+}
+
 export interface Embed {
   title?: EmbedTitle;
   content?: string;
   fields?: EmbedField[];
   author?: EmbedAuthor;
-  provider?: EmbedProver;
   footer?: EmbedFooter;
   thumbnail?: string;
   image?: string;
-  color?: number;
+  color?: number | MessageType;
 }
 
 export interface EmbedField {
@@ -35,11 +42,6 @@ export interface EmbedFooter {
   timestamp?: Date;
 }
 
-export interface EmbedProver {
-  provider: string;
-  url?: string;
-}
-
 export const EmbedSchema = joi
   .object<Embed>({
     title: joi.object<EmbedTitle>({
@@ -59,10 +61,6 @@ export const EmbedSchema = joi
       url: joi.string().uri(),
       image: joi.string().uri(),
     }),
-    provider: joi.object<EmbedProver>({
-      provider: joi.string().required(),
-      url: joi.string().uri(),
-    }),
     footer: joi.object<EmbedFooter>({
       footer: joi.string().max(2048).required(),
       url: joi.string().uri(),
@@ -70,7 +68,11 @@ export const EmbedSchema = joi
     }),
     thumbnail: joi.string().uri(),
     image: joi.string().uri(),
-    color: joi.number(),
+    color: joi.alternatives(
+      // allow color to wither be number representation, or message type
+      joi.number(),
+      joi.string().valid('INFO', 'SUCCESS', 'DANGER', 'WARNING', 'NEUTRAL'),
+    ),
   })
   .custom((value: Embed, helpers) => {
     if (!value.content && !value.fields) {
@@ -92,9 +94,6 @@ export const EmbedSchema = joi
     }
     if (value.author) {
       currentLen += value.author.author.length;
-    }
-    if (value.provider) {
-      currentLen += value.provider.provider.length;
     }
     if (value.footer) {
       currentLen += value.footer.footer.length;
