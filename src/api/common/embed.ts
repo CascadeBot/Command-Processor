@@ -19,7 +19,7 @@ const embedFieldSchema = z.object({
   inline: z.boolean(),
 });
 
-const embedAuthorschema = z.object({
+const embedAuthorSchema = z.object({
   author: z.string().max(256),
   url: z.string().url().optional(),
   image: z.string().url().optional(),
@@ -41,7 +41,7 @@ export const EmbedSchema = z
     title: embedTitleSchema,
     content: z.string().max(4096),
     fields: z.array(embedFieldSchema),
-    author: embedAuthorschema,
+    author: embedAuthorSchema,
     footer: embedFooterSchema,
     thumbnail: z.string().url(),
     image: z.string().url(),
@@ -49,7 +49,7 @@ export const EmbedSchema = z
   })
   .partial()
   .refine(
-    (value) => !value.content && !value.fields,
+    (value) => value.content || value.fields,
     'Either content or fields are required',
   )
   .refine((value) => {

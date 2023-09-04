@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { pathRegex } from '@utils/regex';
 
 // TODO optional types?
-export const rabbitMqConfSchema = z.discriminatedUnion('type', [
+export const rabbitMqConfSchema = z.union([
   z.object({
-    type: z.literal('connectionString'),
+    type: z.literal('connectionString').default('connectionString'),
     connectionString: z.string().url(), // TODO check scheme
   }),
   z.object({
-    type: z.literal('individual'),
+    type: z.literal('individual').default('individual'),
     username: z.string(),
     password: z.string(),
     hostname: z.string(), // TODO hostname
