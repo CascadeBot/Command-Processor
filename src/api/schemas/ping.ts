@@ -1,14 +1,11 @@
-import joi from 'joi';
+import { z } from 'zod';
 
 export const action = 'ping';
 
-interface Input {
-  msg: string;
-}
-export const schema = joi.object<Input>({
-  msg: joi.string().default('pong!'),
+export const schema = z.object({
+  msg: z.string().default('pong!'),
 });
 
-export const run = (data: Input) => {
-  return data.msg;
+export const run = async (_data: z.infer<typeof schema>) => {
+  throw new Error('test');
 };

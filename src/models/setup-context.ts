@@ -3,11 +3,11 @@ import { scopedLogger } from '@logger';
 import { getPrependScript } from '@sandboxed/prepare-scripts';
 import { registerAsyncFunction, registerFunction } from '@utils/registerFunc';
 import { Context } from 'isolated-vm';
-import joi from 'joi';
+import { z } from 'zod';
 import { config } from '@config';
 
 const log = scopedLogger('sandbox');
-const stringSchema = joi.string().required().strict();
+const stringSchema = z.string();
 
 export async function createGlobalContext(ctx: Context) {
   const jail = ctx.global;
@@ -16,7 +16,7 @@ export async function createGlobalContext(ctx: Context) {
   if (config.logging.allowScripts) {
     // simple console log for debugging purposes
     await registerFunction(ctx, 'log', (msg: any) => {
-      if (stringSchema.validate(msg).error) return false;
+      if (!stringSchema.safeParse(msg).success) return false;
       log.debug('SANDBOX: ' + msg);
       return true;
     });

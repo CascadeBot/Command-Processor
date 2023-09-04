@@ -17,14 +17,17 @@
   "author": "cascadeorg",
   "license": "MIT",
   "dependencies": {
-    "@cloudamqp/amqp-client": "^2.1.0",
-    "isolated-vm": "^4.4.1",
-    "joi": "^17.6.2",
-    "neat-config": "^1.0.0",
+    "amqplib": "^0.10.3",
+    "glob": "^10.3.3",
+    "isolated-vm": "^4.6.0",
+    "neat-config": "^2.0.0",
+    "type-fest": "^4.3.1",
     "winston": "^3.8.2",
-    "winston-console-format": "^1.0.8"
+    "winston-console-format": "^1.0.8",
+    "zod": "^3.22.2"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.8.2",
     "@types/node": "^18.7.20",
     "@typescript-eslint/eslint-plugin": "^5.38.0",
     "@typescript-eslint/parser": "^5.38.0",
@@ -32,7 +35,7 @@
     "eslint": "^8.24.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "nodemon": "^2.0.20",
+    "nodemon": "^3.0.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.1",
     "tsc-alias": "^1.7.0",

@@ -1,11 +1,6 @@
-import joi from 'joi';
+import { z } from 'zod';
 
-export interface LoggingConf {
-  format: 'json' | 'pretty';
-  allowScripts: boolean;
-}
-
-export const loggingConfSchema = joi.object({
-  format: joi.string().valid('json', 'pretty').default('json'),
-  allowScripts: joi.boolean().default(false),
+export const loggingConfSchema = z.object({
+  format: z.enum(['json', 'pretty']).default('json'),
+  allowScripts: z.coerce.boolean().default(false),
 });

@@ -3,7 +3,7 @@ import { IsolateInstance } from '@models/isolate-instance';
 import { scopedLogger } from '@logger';
 import { randomUUID } from 'crypto';
 
-const log = scopedLogger('manager');
+const log = scopedLogger('isolate-manager');
 
 let killTask: ReturnType<typeof setInterval> | null = null;
 let cpuLimit = 10000000n; // TODO arbitrary number, need to do more research
@@ -25,7 +25,13 @@ let isolates: IsolateInstance[] = [];
 export function setupManager() {
   killTask = setInterval(() => {
     for (const isolate of isolates) {
+      if (isolate == undefined) {
+        continue;
+      }
       if (isolate.running == false) {
+        continue;
+      }
+      if (isolate.startCpuTime == undefined) {
         continue;
       }
       const diff: bigint =
@@ -67,7 +73,7 @@ function disposeOfInstance(id: string) {
   // we still need to be able to dispose of it if it does happen
   const foundInstances = [];
   isolates = isolates.filter((ins) => {
-    if (ins.id !== id) {
+    if (ins.id !== id && !ins.backendInstance.isDisposed) {
       foundInstances.push(ins);
       return true;
     }

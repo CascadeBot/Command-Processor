@@ -1,40 +1,32 @@
-import joi from 'joi';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { z, ZodAny } from 'zod';
 import { scopedLogger } from '@logger';
+import { glob } from 'glob';
+import { config } from '@config';
 
 const log = scopedLogger('runner');
 
-const actionPayloadSchema = joi
+const actionPayloadSchema = z
   .object({
-    action: joi.string().required(),
-    data: joi.object(),
+    action: z.string(),
+    // partial check, first check if action payload structure is correct, specific checks later
+    data: z.any(),
   })
   .strict();
 
 interface Schema {
   action: string;
-  schema: joi.ObjectSchema;
+  schema: ZodAny;
   run: (data: any) => any;
 }
+
 const schemas: Record<string, Schema> = {};
 
 export async function setupApi() {
-  const files = await fs.readdir(path.join(__dirname, './schemas'), {
-    withFileTypes: true,
-  });
-  const fileNames = files
-    .filter((v) => {
-      // js files are supported in production use, where ts are compiled to js
-      const isCodefile = v.name.endsWith('.js') || v.name.endsWith('.ts');
-      const isNormalFile = v.isFile();
-      return isCodefile && isNormalFile;
-    })
-    .map((v) => v.name);
-
-  const importedData = fileNames.map((name) =>
-    require(path.join(__dirname, './schemas', name)),
-  );
+  const globFiles = await glob([
+    __dirname + '/schemas/**/*.js',
+    __dirname + '/schemas/**/*.ts',
+  ]);
+  const importedData = globFiles.map((name) => require(name));
   importedData.forEach((data: Schema) => {
     schemas[data.action] = data;
   });
@@ -45,8 +37,8 @@ export async function setupApi() {
  ** all data passed into this method is untrusted
  */
 export async function callApiMethod(payload: any): Promise<any> {
-  const isValidPayload = actionPayloadSchema.validate(payload);
-  if (isValidPayload.error)
+  const isValidPayload = actionPayloadSchema.safeParse(payload);
+  if (isValidPayload.success === false)
     return {
       success: false,
       error: 'input',
@@ -62,23 +54,28 @@ export async function callApiMethod(payload: any): Promise<any> {
       error: 'action',
     };
 
-  const isValidPayloadContent = schema.schema.validate(actionData);
-  if (!schema)
+  const isValidPayloadContent = schema.schema.safeParse(actionData);
+  if (isValidPayloadContent.success === false) {
+    if (config.logging.allowScripts)
+      log.warn('Failed validation', isValidPayloadContent.error);
     return {
       success: false,
       error: 'input',
       data: isValidPayloadContent.error,
     };
+  }
 
   try {
     // this is awaited regardless of promise or not
-    const data = await schema.run(isValidPayloadContent.value);
+    const data = await schema.run(isValidPayloadContent.data);
     return {
       success: true,
       data,
     };
   } catch (err) {
-    log.error('Failed to run api method: ' + schema.action, err);
+    const errorStr: Error | string =
+      err instanceof Error ? err : JSON.stringify(err, null, 2);
+    log.error('Failed to run api method: ' + schema.action, errorStr);
     return {
       success: false,
       error: 'exec',

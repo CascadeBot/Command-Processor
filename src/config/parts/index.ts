@@ -1,9 +1,10 @@
-import joi from 'joi';
-import { LoggingConf, loggingConfSchema } from './logging';
-export interface Config {
-  logging: LoggingConf;
-}
+import { z } from 'zod';
+import { loggingConfSchema } from './logging';
+import { rabbitMqConfSchema } from '@config/parts/rabbitMQ';
 
-export const configSchema = joi.object<Config>({
-  logging: loggingConfSchema.default(),
+export type Config = z.infer<typeof configSchema>;
+
+export const configSchema = z.object({
+  logging: loggingConfSchema.default({}),
+  rabbitMq: rabbitMqConfSchema,
 });
